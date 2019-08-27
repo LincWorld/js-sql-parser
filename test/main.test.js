@@ -22,26 +22,26 @@ const testParser = function (sql) {
   return secondAst;
 }
 
-describe('select grammar support', function () {
+describe('get grammar support', function () {
   it('test0', function () {
-    testParser('select a from b where c > 1 group by d order by e desc;');
+    testParser('get a from b where c > 1 group by d order by e desc;');
   });
 
   it('test1', function () {
-    testParser('select distinct max_statement_time = 1.2 a ');
+    testParser('get distinct max_statement_time = 1.2 a ');
   });
 
   it('test2', function () {
-    testParser('select all 0x1f');
+    testParser('get all 0x1f');
   });
 
   it('test3', function () {
-    testParser('select distinctrow "xx", a in (1,2)');
+    testParser('get distinctrow "xx", a in (1,2)');
   });
 
   it('test4', function () {
     testParser(`
-      select
+      get
         tag_basic.gender as gender,
         tag_basic.age as age,
         trade_m.cate_id as cate_id,
@@ -59,18 +59,18 @@ describe('select grammar support', function () {
   });
 
   it ('test5', function () {
-    testParser('select function(), function(1, "sd", 0x1F)');
+    testParser('get function(), function(1, "sd", 0x1F)');
   });
 
   it ('test6 unicode', function () {
     testParser(`
-      select in中文 from tags
+      get in中文 from tags
     `);
   });
 
   it ('test7', function () {
     testParser(`
-      SELECT 
+      GET 
         DISTINCT high_priority MAX_STATEMENT_TIME=1 STRAIGHT_JOIN SQL_SMALL_RESULT SQL_BIG_RESULT SQL_BUFFER_RESULT SQL_CACHE SQL_CALC_FOUND_ROWS fm_customer.lname AS name1,
         fm_customer.fname AS name2,
         fm_customer.address1 AS addr1,
@@ -91,7 +91,7 @@ describe('select grammar support', function () {
 
   it ('test8', function () {
     testParser(`
-      SELECT   P1.PAYMENTNO, P1.AMOUNT,
+      GET   P1.PAYMENTNO, P1.AMOUNT,
       (P1.AMOUNT * 100) / SUM(P2.AMOUNT)
       FROM     PENALTIES AS P1, PENALTIES AS P2
       GROUP BY P1.PAYMENTNO, P1.AMOUNT
@@ -101,12 +101,12 @@ describe('select grammar support', function () {
 
   it ('test9', function () {
     testParser(`
-        SELECT  PLAYERS.PLAYERNO, NAME,
-       (SELECT   COUNT(*)
+        GET  PLAYERS.PLAYERNO, NAME,
+       (GET   COUNT(*)
         FROM     PENALTIES
         WHERE    PLAYERS.PLAYERNO =
                  PENALTIES.PLAYERNO) AS NUMBER_OF_PENALTIES,
-       (SELECT   COUNT(*)
+       (GET   COUNT(*)
         FROM     TEAMS
         WHERE    PLAYERS.PLAYERNO =
                  TEAMS.PLAYERNO) AS NUMBER_OF_TEAMS
@@ -116,8 +116,8 @@ describe('select grammar support', function () {
 
   it ('test10', function () {
     testParser(`
-      SELECT rd.*, rd.rd_numberofrooms - (
-        SELECT SUM(rn.reservation_numberofrooms) AS count_reserve_room
+      GET rd.*, rd.rd_numberofrooms - (
+        GET SUM(rn.reservation_numberofrooms) AS count_reserve_room
         FROM reservation rn
         WHERE rn.reservation_rd_id = rd.rd_id
           AND (str_to_date('$data_Check_in_date', '%d-%m-%y') BETWEEN str_to_date(rn.reservation_check_in_date, '%d-%m-%y') AND str_to_date(rn.reservation_check_out_date, '%d-%m-%y')
@@ -128,7 +128,7 @@ describe('select grammar support', function () {
       FROM room_details rd
       LEFT JOIN reservation rn ON rd.rd_id = rn.reservation_rd_id
       WHERE NOT EXISTS (
-        SELECT rn.*
+        GET rn.*
         FROM reservation rn
         WHERE (rn.reservation_rd_id = rd.rd_id
           AND ((str_to_date('$data_Check_in_date', '%d-%m-%y') BETWEEN str_to_date(rn.reservation_check_in_date, '%d-%m-%y') AND str_to_date(rn.reservation_check_out_date, '%d-%m-%y')
@@ -136,7 +136,7 @@ describe('select grammar support', function () {
             OR str_to_date('$data_Check_in_date', '%d-%m-%y') <= str_to_date(rn.reservation_check_in_date, '%d-%m-%y')
               AND str_to_date('$data_Check_out_date', '%d-%m-%y') >= str_to_date(rn.reservation_check_out_date, '%d-%m-%y')))
           AND (rd.rd_numberofrooms <= (
-            SELECT SUM(rn.reservation_numberofrooms) AS count_reserve_room
+            GET SUM(rn.reservation_numberofrooms) AS count_reserve_room
             FROM reservation rn
             WHERE rn.reservation_rd_id = rd.rd_id
               AND (str_to_date('$data_Check_in_date', '%d-%m-%y') BETWEEN str_to_date(rn.reservation_check_in_date, '%d-%m-%y') AND str_to_date(rn.reservation_check_out_date, '%d-%m-%y')
@@ -148,13 +148,13 @@ describe('select grammar support', function () {
     `);
   });
 
-  it ('test11 SELECT `LEFT`(a, 3) FROM b support.', function () {
-    testParser('SELECT `LEFT`(a, 3) FROM b');
+  it ('test11 GET `LEFT`(a, 3) FROM b support.', function () {
+    testParser('GET `LEFT`(a, 3) FROM b');
   });
 
   it ('test12', function () {
     testParser(`
-      select
+      get
           a.product_id,
           a.product_name,
           count(a.ins_id) as ins_num,
@@ -170,7 +170,7 @@ describe('select grammar support', function () {
           count(gt45lt55) as gt25lt35_num,
           count(gt55) as gt55_num
       from(
-          select
+          get
                   a.ins_id,
                   b.product_id,
                   b.product_name,
@@ -204,7 +204,7 @@ describe('select grammar support', function () {
 
   it ('test13', function () {
     testParser(`
-      SELECT
+      GET
           a.*, f.ORG_NAME DEPT_NAME,
           IFNULL(d.CONT_COUNT, 0) SIGN_CONT_COUNT,
           IFNULL(d.TOTAL_PRICE, 0) SIGN_CONT_MONEY,
@@ -221,7 +221,7 @@ describe('select grammar support', function () {
           0 BRAND_COUNT
       FROM
           (
-              SELECT
+              GET
                   u.USER_ID,
                   u.REAL_NAME,
                   u.ORG_PARENT_ID,
@@ -239,7 +239,7 @@ describe('select grammar support', function () {
       LEFT JOIN SE_ORGANIZ f ON a.ORG_ID = f.ORG_ID
       -- 签约合同数与合同金额
       LEFT JOIN (
-          SELECT
+          GET
               CUST_MGR_ID,
               COUNT(CONT_ID) CONT_COUNT,
               SUM(TOTAL_PRICE) TOTAL_PRICE
@@ -252,7 +252,7 @@ describe('select grammar support', function () {
       ) d ON a.USER_ID = d.CUST_MGR_ID
       -- 签约并回款合同数与回款金额
       LEFT JOIN (
-          SELECT
+          GET
               CUST_MGR_ID,
               COUNT(CONT_ID) CONT_COUNT,
               SUM(TOTAL_PRICE) TOTAL_PRICE
@@ -266,7 +266,7 @@ describe('select grammar support', function () {
       ) c ON a.USER_ID = c.CUST_MGR_ID
       -- 总回款合同数与总回款金额
       LEFT JOIN (
-          SELECT
+          GET
               c.CUST_MGR_ID,
               COUNT(c.CONT_ID) CONT_COUNT,
               SUM(c.TOTAL_PRICE) TOTAL_PRICE
@@ -288,7 +288,7 @@ describe('select grammar support', function () {
 
   it ('test14', function () {
     testParser(`
-      SELECT
+      GET
           k.*,
       IF (
           k.LAST_PUBLISH_TOTAL_COUNT > 0,
@@ -307,7 +307,7 @@ describe('select grammar support', function () {
       ) RELATIVE_COMMON_RATIO
       FROM
         (
-            SELECT
+            GET
                 m.ORG_NAME,
                 IFNULL(n.LAST_PUBLISH_TOTAL_COUNT, 0) LAST_PUBLISH_TOTAL_COUNT,
                 IFNULL(n.LAST_PROJECT_COUNT, 0) LAST_PROJECT_COUNT,
@@ -320,7 +320,7 @@ describe('select grammar support', function () {
                 IFNULL(m.COMMON_COUNT - n.LAST_COMMON_COUNT, 0) RISE_COMMON_COUNT
             FROM
                 (
-                    SELECT
+                    GET
                         'c' AS ORG_NAME,
                         SUM(PUBLISH_TOTAL_COUNT) AS PUBLISH_TOTAL_COUNT,
                         SUM(PROJECT_COUNT) AS PROJECT_COUNT,
@@ -331,7 +331,7 @@ describe('select grammar support', function () {
                         DATE_FORMAT(RECORD_DATE, '%Y-%m') = '2012-07'
                 ) m
             LEFT JOIN (
-                SELECT
+                GET
                     'c' AS ORG_NAME,
                     SUM(PUBLISH_TOTAL_COUNT) AS LAST_PUBLISH_TOTAL_COUNT,
                     SUM(PROJECT_COUNT) AS LAST_PROJECT_COUNT,
@@ -346,35 +346,35 @@ describe('select grammar support', function () {
   });
 
   it ('limit support.', function () {
-    testParser('select a from b limit 2, 3');
+    testParser('get a from b limit 2, 3');
   });
 
   it ('fix not equal.', function () {
-    testParser('select a from b where a <> 1 limit 2, 3');
+    testParser('get a from b where a <> 1 limit 2, 3');
   });
 
   it ('restore semicolon.', function () {
-    testParser('select a from b limit 2;');
+    testParser('get a from b limit 2;');
   });
 
   it ('recognoce alias for sql-function calls in stringify function.', function () {
-    testParser('SELECT COUNT(*) AS total, a b, b as c, c/2 d, d & e an FROM b');
+    testParser('GET COUNT(*) AS total, a b, b as c, c/2 d, d & e an FROM b');
   });
 
   it ('union support, https://dev.mysql.com/doc/refman/8.0/en/union.html', function () {
-    testParser('select a from dual union select a from foo;');
+    testParser('get a from dual union get a from foo;');
   });
 
   it ('union Parenthesized support, https://dev.mysql.com/doc/refman/8.0/en/union.html', function () {
-    testParser('(select a from dual) union (select a from foo) order by a desc limit 100, 100;');
+    testParser('(get a from dual) union (get a from foo) order by a desc limit 100, 100;');
   });
 
   it ('union all support, https://dev.mysql.com/doc/refman/8.0/en/union.html', function () {
-    testParser('(select a from dual) union all (select a from foo) order by a limit 100');
+    testParser('(get a from dual) union all (get a from foo) order by a limit 100');
   });
 
   it ('union distinct support, https://dev.mysql.com/doc/refman/8.0/en/union.html', function () {
-    testParser('select a from dual order by a desc limit 1, 1 union distinct select a from foo order by a limit 1');
+    testParser('get a from dual order by a desc limit 1, 1 union distinct get a from foo order by a limit 1');
   });
 
 });

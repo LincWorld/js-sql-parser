@@ -14,7 +14,7 @@
 [`][a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*[`]            return 'IDENTIFIER'
 [\w]+[\u4e00-\u9fa5]+[0-9a-zA-Z_\u4e00-\u9fa5]*                   return 'IDENTIFIER'
 [\u4e00-\u9fa5][0-9a-zA-Z_\u4e00-\u9fa5]*                         return 'IDENTIFIER'
-SELECT                                                            return 'SELECT'
+GET                                                               return 'GET'
 ALL                                                               return 'ALL'
 ANY                                                               return 'ANY'
 DISTINCT                                                          return 'DISTINCT'
@@ -28,7 +28,7 @@ SQL_BUFFER_RESULT                                                 return 'SQL_BU
 SQL_CACHE                                                         return 'SQL_CACHE'
 SQL_NO_CACHE                                                      return 'SQL_NO_CACHE'
 SQL_CALC_FOUND_ROWS                                               return 'SQL_CALC_FOUND_ROWS'
-([a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*\.){1,2}\*       return 'SELECT_EXPR_STAR'
+([a-zA-Z_\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5]*\.){1,2}\*       return 'GET_EXPR_STAR'
 AS                                                                return 'AS'
 TRUE                                                              return 'TRUE'
 FALSE                                                             return 'FALSE'
@@ -160,7 +160,7 @@ UNION                                                             return 'UNION'
 %% /* language grammar */
 
 main
-  : selectClause semicolonOpt EOF { return {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
+  : getClause semicolonOpt EOF { return {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   | unionClause semicolonOpt EOF { return {nodeType: 'Main', value: $1, hasSemicolon: $2}; }
   ;
 
@@ -175,21 +175,21 @@ unionClause
   ;
 
 unionClauseParenthesized
-  : selectClauseParenthesized UNION distinctOpt selectClauseParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 }; }
-  | selectClauseParenthesized UNION distinctOpt unionClauseParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 }; }
+  : getClauseParenthesized UNION distinctOpt getClauseParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 }; }
+  | getClauseParenthesized UNION distinctOpt unionClauseParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 }; }
   ;
 
-selectClauseParenthesized
-  : '(' selectClause ')' { $$ = { type: 'SelectParenthesized', value: $2 }; }
+getClauseParenthesized
+  : '(' getClause ')' { $$ = { type: 'GetParenthesized', value: $2 }; }
   ;
 
 unionClauseNotParenthesized
-  : selectClause UNION distinctOpt selectClause { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
-  | selectClause UNION distinctOpt unionClauseNotParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
+  : getClause UNION distinctOpt getClause { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
+  | getClause UNION distinctOpt unionClauseNotParenthesized { $$ = { type: 'Union', left: $1, distinctOpt: $3, right: $4 } }
   ;
 
-selectClause
-  : SELECT
+getClause
+  : GET
       distinctOpt
       highPriorityOpt
       maxStateMentTimeOpt
@@ -199,11 +199,11 @@ selectClause
       sqlBufferResultOpt
       sqlCacheOpt
       sqlCalcFoundRowsOpt
-      selectExprList
-      selectDataSetOpt
+      getExprList
+      getDataSetOpt
       {
         $$ = {
-          type: 'Select',
+          type: 'Get',
           distinctOpt: $2,
           highPriorityOpt: $3,
           maxStateMentTimeOpt: $4,
@@ -213,7 +213,7 @@ selectClause
           sqlBufferResultOpt: $8,
           sqlCacheOpt: $9,
           sqlCalcFoundRowsOpt: $10,
-          selectItems: $11,
+          getItems: $11,
           from: $12.from,
           partition: $12.partition,
           where: $12.where,
@@ -266,16 +266,16 @@ sqlCalcFoundRowsOpt
   : SQL_CALC_FOUND_ROWS { $$ = $1 }
   | { $$ = null }
   ;
-selectExprList
-  : selectExprList ',' selectExpr { $1.value.push($3); }
-  | selectExpr { $$ = { type: 'SelectExpr', value: [ $1 ] } }
+getExprList
+  : getExprList ',' getExpr { $1.value.push($3); }
+  | getExpr { $$ = { type: 'GetExpr', value: [ $1 ] } }
   ;
-selectExpr
+getExpr
   : '*' { $$ = { type: 'Identifier', value: $1 } }
-  | SELECT_EXPR_STAR { $$ = { type: 'Identifier', value: $1 } }
-  | expr selectExprAliasOpt { $$ = $1; $$.alias = $2.alias; $$.hasAs = $2.hasAs; }
+  | GET_EXPR_STAR { $$ = { type: 'Identifier', value: $1 } }
+  | expr getExprAliasOpt { $$ = $1; $$.alias = $2.alias; $$.hasAs = $2.hasAs; }
   ;
-selectExprAliasOpt
+getExprAliasOpt
   : { $$ = {alias: null, hasAs: null} }
   | AS IDENTIFIER { $$ = {alias: $2, hasAs: true} }
   | IDENTIFIER { $$ = {alias: $1, hasAs: false} }
@@ -313,7 +313,7 @@ function_call_param_list
 function_call_param
   : { $$ = null }
   | '*' { $$ = $1 }
-  | SELECT_EXPR_STAR { $$ = $1 }
+  | GET_EXPR_STAR { $$ = $1 }
   | DISTINCT expr { $$ = { type: 'FunctionCallParam', distinctOpt: $1, value: $2 } }
   | expr { $$ = $1 }
   ;
@@ -354,8 +354,8 @@ simple_expr
   | simple_expr_prefix { $$ = $1 }
   | '(' expr_list ')' { $$ = { type: 'SimpleExprParentheses', value: $2 } }
   | ROW '(' expr_list ')' { $$ = { type: 'SimpleExprParentheses', value: $2, hasRow: true } }
-  | '(' selectClause ')' { $$ = { type: 'SubQuery', value: $2 } }
-  | EXISTS '(' selectClause ')' { $$ = { type: 'SubQuery', value: $3, hasExists: true } }
+  | '(' getClause ')' { $$ = { type: 'SubQuery', value: $2 } }
+  | EXISTS '(' getClause ')' { $$ = { type: 'SubQuery', value: $3, hasExists: true } }
   | '{' identifier expr '}' { $$ = { type: 'IdentifierExpr', identifier: $2, value: $3 } }
   | case_when { $$ = $1 }
   ;
@@ -384,7 +384,7 @@ escape_opt
   ;
 predicate
   : bit_expr { $$ = $1 }
-  | bit_expr not_opt IN '(' selectClause ')' { $$ = { type: 'InSubQueryPredicate', hasNot: $2, left: $1 ,right: $5 } }
+  | bit_expr not_opt IN '(' getClause ')' { $$ = { type: 'InSubQueryPredicate', hasNot: $2, left: $1 ,right: $5 } }
   | bit_expr not_opt IN '(' expr_list ')' { $$ = { type: 'InExpressionListPredicate', hasNot: $2, left: $1, right: $5 } }
   | bit_expr not_opt BETWEEN bit_expr AND predicate { $$ = { type: 'BetweenPredicate', hasNot: $2, left: $1, right: { left: $4, right: $6 } } }
   | bit_expr SOUNDS LIKE bit_expr { $$ = { type: 'SoundsLikePredicate', hasNot: false, left: $1, right: $4 } }
@@ -408,7 +408,7 @@ boolean_primary
   : predicate { $$ = $1 }
   | boolean_primary IS not_opt NULL { $$ = { type: 'IsNullBooleanPrimary', hasNot: $3 , value: $1 } }
   | boolean_primary comparison_operator predicate { $$ = { type: 'ComparisonBooleanPrimary', left: $1, operator: $2, right: $3 } }
-  | boolean_primary comparison_operator sub_query_data_set_opt '(' selectClause ')' { $$ = { type: 'ComparisonSubQueryBooleanPrimary', operator: $2, subQueryOpt: $3, left: $1, right: $5 } }
+  | boolean_primary comparison_operator sub_query_data_set_opt '(' getClause ')' { $$ = { type: 'ComparisonSubQueryBooleanPrimary', operator: $2, subQueryOpt: $3, left: $1, right: $5 } }
   ;
 boolean_extra
   : boolean { $$ = $1 }
@@ -488,7 +488,7 @@ for_update_lock_in_share_mode_opt
   | FOR UPDATE { $$ = $1 + ' ' + $2 }
   | LOCK IN SHARE MODE { $$ = $1 + ' ' + $2 + ' ' + $3 + ' ' + $4 }
   ;
-selectDataSetOpt
+getDataSetOpt
   : { $$ = {} }
   | FROM table_references partitionOpt where_opt group_by_opt having_opt order_by_opt limit_opt procedure_opt for_update_lock_in_share_mode_opt
     { $$ = { from: $2, partition: $3, where: $4, groupBy: $5, having: $6, orderBy: $7, limit: $8, procedure: $9, updateLockMode: $10 } }
@@ -582,6 +582,6 @@ index_hint
   ;
 table_factor
   : identifier partitionOpt aliasOpt index_hint_list_opt { $$ = { type: 'TableFactor', value: $1, partition: $2, alias: $3.alias, hasAs: $3.hasAs, indexHintOpt: $4 } }
-  | '(' selectClause ')' aliasOpt { $$ = { type: 'SubQuery', value: $2, alias: $4.alias, hasAs: $4.hasAs } }
+  | '(' getClause ')' aliasOpt { $$ = { type: 'SubQuery', value: $2, alias: $4.alias, hasAs: $4.hasAs } }
   | '(' table_references ')' { $$ = $2; $$.hasParentheses = true }
   ;

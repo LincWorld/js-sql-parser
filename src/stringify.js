@@ -60,8 +60,8 @@ Sql.prototype.travelMain = function(ast) {
     this.append(';', true);
   }
 }
-Sql.prototype.travelSelect = function(ast) {
-  this.appendKeyword('select');
+Sql.prototype.travelGet = function(ast) {
+  this.appendKeyword('get');
   if (ast.distinctOpt) {
     this.appendKeyword(ast.distinctOpt);
   }
@@ -89,8 +89,8 @@ Sql.prototype.travelSelect = function(ast) {
   if (ast.sqlCalcFoundRowsOpt) {
     this.appendKeyword(ast.sqlCalcFoundRowsOpt);
   }
-  if (ast.selectItems) {
-    this.travelSelectExpr(ast.selectItems);
+  if (ast.getItems) {
+    this.travelGetExpr(ast.getItems);
   }
   if (ast.from) {
     this.appendKeyword('from');
@@ -123,7 +123,7 @@ Sql.prototype.travelSelect = function(ast) {
     this.appendKeyword(ast.updateLockMode);
   }
 }
-Sql.prototype.travelSelectExpr = function (ast) {
+Sql.prototype.travelGetExpr = function (ast) {
   var exprList = ast.value;
   for (var i = 0; i < exprList.length; i++) {
     if (typeof ast === 'string') {
@@ -545,7 +545,7 @@ Sql.prototype.travelUnion = function (ast) {
   }
   this.travel(ast.right);
 }
-Sql.prototype.travelSelectParenthesized = function (ast) {
+Sql.prototype.travelGetParenthesized = function (ast) {
   this.appendKeyword('(');
   this.travel(ast.value);
   this.appendKeyword(')');
